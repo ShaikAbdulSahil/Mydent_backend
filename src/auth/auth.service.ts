@@ -16,6 +16,7 @@ import { DoctorService } from 'src/doctor/doc.service';
 import { DoctorDocument } from 'src/doctor/doc.schema';
 import * as crypto from 'crypto';
 import { MailerService } from 'src/mailer/mail.service';
+import { AdminLoginDto } from './dto/admin.dto';
 
 @Injectable()
 export class AuthService {
@@ -100,12 +101,35 @@ export class AuthService {
     };
   }
 
-  async loginAdmin(email: string, password: string) {
-    const user = await this.userModel.findOne({ email });
+  async signupAdmin(dto: AdminLoginDto) {
+    const existingUser = await this.userModel.findOne({ email: dto.email });
+    if (existingUser)
+      throw new ConflictException('Admin email already registered');
+    const hashed = await bcrypt.hash(dto.password, 10);
+    const newAdmin = await this.userModel.create({
+      email: dto.email,
+      firstName: 'Admin',
+      password: hashed,
+      mobile: '0000000000',
+      balance: 0,
+      role: 'admin',
+    });
+
+    return {
+      access_token: await this.jwtService.signAsync({
+        sub: newAdmin._id,
+        email: newAdmin.email,
+        role: newAdmin.role,
+      }),
+    };
+  }
+
+  async loginAdmin(dto: AdminLoginDto) {
+    const user = await this.userModel.findOne({ email: dto.email });
     if (!user) throw new UnauthorizedException('Invalid credentials');
     if (user.role !== 'admin') throw new UnauthorizedException('Access denied');
 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    const isPasswordValid = await bcrypt.compare(dto.password, user.password);
     if (!isPasswordValid)
       throw new UnauthorizedException('Invalid credentials');
 
@@ -114,7 +138,7 @@ export class AuthService {
 
     return {
       access_token: token,
-      user: { _id: user._id, email: user.email },
+      user: { _id: user._id, email: user.email, role: user.role },
     };
   }
 

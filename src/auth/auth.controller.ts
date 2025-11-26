@@ -2,10 +2,11 @@ import { Body, Controller, Post } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { SignupDto } from './dto/signup.dto';
 import { DoctorSignupDto } from 'src/doctor/doc.dto';
+import { AdminLoginDto } from './dto/admin.dto';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  constructor(private authService: AuthService) { }
 
   @Post('signup/user')
   signup(@Body() dto: SignupDto) {
@@ -28,8 +29,13 @@ export class AuthController {
   }
 
   @Post('login/admin')
-  loginAdmin(@Body() dto: { email: string; password: string }) {
-    return this.authService.loginAdmin(dto.email, dto.password);
+  loginAdmin(@Body() dto: AdminLoginDto) {
+    return this.authService.loginAdmin(dto);
+  }
+
+  @Post('signup/admin')
+  signupAdmin(@Body() dto: AdminLoginDto) {
+    return this.authService.signupAdmin(dto);
   }
 
   @Post('forgot-password')
