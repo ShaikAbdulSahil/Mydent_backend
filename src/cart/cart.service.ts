@@ -18,12 +18,12 @@ export class CartService {
 
     // If quantity is not set or is 0
     if (product.quantity === undefined || product.quantity <= 0) {
-      throw new Error('Product is out of stock');
+      return { message: 'Product is out of stock' };
     }
 
     // If requested quantity > available stock
     if (quantity > product.quantity) {
-      throw new Error(`Only ${product.quantity} item(s) in stock`);
+      return { message: `Only ${product.quantity} item(s) in stock` };
     }
 
     const existing = await this.cartModel.findOne({

@@ -16,4 +16,8 @@ export class SignupDto {
   @IsString()
   @IsNotEmpty()
   mobile!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  address!: string;
 }

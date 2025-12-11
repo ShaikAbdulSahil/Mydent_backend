@@ -25,7 +25,7 @@ export class AuthService {
     private readonly doctorService: DoctorService,
     private jwtService: JwtService,
     private readonly mailerService: MailerService,
-  ) {}
+  ) { }
 
   async signup(dto: SignupDto) {
     const existingUser = await this.userModel.findOne({ email: dto.email });
@@ -37,6 +37,7 @@ export class AuthService {
       firstName: dto.firstName,
       password: hashed,
       mobile: dto.mobile,
+      address: dto.address,
       balance: 0,
     });
 

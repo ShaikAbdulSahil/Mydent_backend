@@ -15,6 +15,10 @@ export class UpdateUserDto {
 
   @IsOptional()
   @IsString()
+  address?: string;
+  
+  @IsOptional()
+  @IsString()
   ageGroup?: string;
 
   @IsOptional()

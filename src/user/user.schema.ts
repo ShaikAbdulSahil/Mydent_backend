@@ -17,6 +17,7 @@ export class User {
 
   @Prop() firstName!: string;
   @Prop() password!: string;
+  @Prop({ required: true }) address!: string;
   @Prop({ required: true }) mobile!: string;
   @Prop({ type: Number, default: 0 }) balance!: number;
   @Prop() ageGroup?: string;
