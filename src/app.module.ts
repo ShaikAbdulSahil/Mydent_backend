@@ -22,11 +22,17 @@ import { BlogsModule } from './blogs/blogs.module';
 import { DoctorsTeamModule } from './doctors-team/team.module';
 import { CoinsModule } from './coins/coins.module';
 import { TicketModule } from './ticket/ticket.module';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true, // ✅ makes config accessible app-wide
+    }),
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', 'public'), // Points to the 'public' folder in root
+      exclude: ['/api/(.*)'], // Ensures API routes don't get blocked
     }),
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
