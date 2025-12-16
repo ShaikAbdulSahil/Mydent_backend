@@ -1,40 +1,40 @@
 # --- Stage 1: Builder ---
 FROM node:18-alpine AS builder
 
-# Set the working directory inside the container
+# Set the working directory
 WORKDIR /app
 
-# Copy package files first to leverage Docker cache
-COPY package*.json ./
+# Copy package files (including yarn.lock)
+COPY package.json yarn.lock ./
 
-# Install all dependencies (including devDependencies for building)
-RUN npm ci
+# Install dependencies using Yarn (frozen-lockfile ensures exact versions)
+RUN yarn install --frozen-lockfile
 
-# Copy the rest of the application source code
+# Copy the rest of the application code
 COPY . .
 
-# Build the NestJS application (creates the /dist folder)
-RUN npm run build
+# Build the NestJS application
+RUN yarn build
 
 # --- Stage 2: Production ---
 FROM node:18-alpine AS production
 
-# Set node environment to production
 ENV NODE_ENV production
-
-# Set the working directory
 WORKDIR /app
 
-# Copy package files again
-COPY package*.json ./
+# Copy package files
+COPY package.json yarn.lock ./
 
-# Install ONLY production dependencies
-RUN npm ci --only=production && npm cache clean --force
+# Install ONLY production dependencies using Yarn
+RUN yarn install --production --frozen-lockfile && yarn cache clean
 
 # Copy the built application from the builder stage
 COPY --from=builder /app/dist ./dist
 
-# Expose the port the app runs on
+# Copy static assets (if any)
+COPY --from=builder /app/public ./public
+
+# Expose the port
 EXPOSE 3000
 
 # Command to run the application
