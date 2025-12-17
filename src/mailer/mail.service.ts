@@ -4,30 +4,33 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Resend } from 'resend';
 
 @Injectable()
 export class MailerService {
   private readonly logger = new Logger(MailerService.name);
+  private resend?: Resend;
 
-  constructor(private readonly config: ConfigService) { }
+  constructor(private readonly config: ConfigService) {
+    const apiKey = this.config.get<string>('RESEND_API_KEY');
+    if (!apiKey) {
+      this.logger.error('RESEND_API_KEY is not set');
+    } else {
+      this.resend = new Resend(apiKey);
+    }
+  }
 
   async sendResetPasswordEmail(
     email: string,
     token: string,
   ): Promise<{ statusCode: number; id?: string }> {
-    const apiKey = this.config.get<string>('RESEND_API_KEY');
-    if (!apiKey) {
-      this.logger.error('RESEND_API_KEY is not set');
+    if (!this.resend) {
       throw new Error('Email service misconfigured');
     }
 
-    const baseUrl =
-      process.env.API_BASE_URL || 'https://doctor-appointment-5j6e.onrender.com';
-    const fromName = this.config.get<string>('MAIL_FROM_NAME') || 'Mydent';
-    const fromAddress =
-      this.config.get<string>('MAIL_FROM_ADDRESS') || 'no-reply@mydent.app';
-
-    const from = `${fromName} <${fromAddress}>`;
+    // Hardcoded values per request (except RESEND_API_KEY)
+    const baseUrl = 'https://doctor-appointment-5j6e.onrender.com';
+    const from = 'Mydent <no-reply@mydent.app>';
     const resetLink = `${baseUrl}/reset-password.html?token=${token}`;
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
@@ -51,45 +54,33 @@ export class MailerService {
     `;
 
     try {
-      const res = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          from,
-          to: email,
-          subject: 'Password Reset - Mydent',
-          html,
-        }),
+      const { data, error } = await this.resend.emails.send({
+        from,
+        to: email,
+        subject: 'Password Reset - Mydent',
+        html,
       });
 
-      const statusCode = res.status;
-      let id: string | undefined;
-      let payload: unknown;
-      const text = await res.text();
-      try {
-        payload = text ? JSON.parse(text) : {};
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        id = (payload as any)?.id as string | undefined;
-      } catch {
-        payload = text;
-      }
-
-      if (res.ok) {
-        this.logger.log(
-          `Resend accepted email to ${email} with status ${statusCode}${id ? `, id ${id}` : ''}`,
+      if (error) {
+        const statusCode = (error as unknown as { statusCode?: number }).statusCode ?? 500;
+        this.logger.error(
+          `Resend failed with status ${statusCode} for ${email}: ${error.message}`,
         );
-        return { statusCode, id };
+        throw new Error('Failed to send email');
       }
 
-      this.logger.error(
-        `Resend failed with status ${statusCode} for ${email}: ${typeof payload === 'string' ? payload : JSON.stringify(payload)}`,
+      const id = data?.id;
+      const statusCode = 202; // Resend accepts messages asynchronously
+      this.logger.log(
+        `Resend accepted email to ${email} with status ${statusCode}${id ? `, id ${id}` : ''}`,
       );
-      throw new Error('Failed to send email');
+      return { statusCode, id };
     } catch (err) {
-      this.logger.error('Error sending email via Resend', err as Error);
+      const statusCode = (err as unknown as { statusCode?: number }).statusCode ?? 500;
+      this.logger.error(
+        `Error sending email via Resend (status ${statusCode})`,
+        err as Error,
+      );
       throw err;
     }
   }
