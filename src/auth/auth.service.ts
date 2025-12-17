@@ -154,9 +154,13 @@ export class AuthService {
     user.resetPasswordExpires = expires;
     await user.save();
 
-    await this.mailerService.sendResetPasswordEmail(email, token);
+    const result = await this.mailerService.sendResetPasswordEmail(email, token);
 
-    return { message: 'Reset email sent successfully' };
+    return {
+      message: 'Reset email sent successfully',
+      emailStatus: result.statusCode,
+      emailId: result.id,
+    };
   }
 
   async resetPassword(token: string, newPassword: string) {
