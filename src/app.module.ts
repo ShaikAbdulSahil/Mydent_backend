@@ -33,7 +33,7 @@ import { join } from 'path';
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', 'public'), // Points to the 'public' folder in root
       // Use simple wildcard to avoid path-to-regexp unnamed capture error
-      exclude: ['/api*'], // Ensures API routes don't get blocked
+      // exclude: ['/api/.*'], // Ensures API routes don't get blocked
     }),
     MongooseModule.forRootAsync({
       imports: [ConfigModule],

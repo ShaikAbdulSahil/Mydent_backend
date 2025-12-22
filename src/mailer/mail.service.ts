@@ -29,8 +29,9 @@ export class MailerService {
     }
 
     // Hardcoded values per request (except RESEND_API_KEY)
-    const baseUrl = 'https://doctor-appointment-5j6e.onrender.com';
-    const from = 'Mydent <no-reply@mydent.app>';
+    const baseUrl = 'http://localhost:3000'; // Adjust as needed
+    // Resend Testing Mode requires this exact sender
+    const from = 'Mydent <onboarding@resend.dev>';
     const resetLink = `${baseUrl}/reset-password.html?token=${token}`;
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
@@ -64,7 +65,7 @@ export class MailerService {
       if (error) {
         const statusCode = (error as unknown as { statusCode?: number }).statusCode ?? 500;
         this.logger.error(
-          `Resend failed with status ${statusCode} for ${email}: ${error.message}`,
+          `Resend failed with status ${statusCode} for ${email}: ${error.message}. If you are in Testing Mode, send FROM onboarding@resend.dev and TO your Resend account email.`,
         );
         throw new Error('Failed to send email');
       }
