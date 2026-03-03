@@ -22,6 +22,7 @@ import { BlogsModule } from './blogs/blogs.module';
 import { DoctorsTeamModule } from './doctors-team/team.module';
 import { CoinsModule } from './coins/coins.module';
 import { TicketModule } from './ticket/ticket.module';
+import { NanoBananaModule } from './nano-banana/nano-banana.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 
@@ -63,6 +64,7 @@ import { join } from 'path';
     DoctorsTeamModule,
     CoinsModule,
     TicketModule,
+    NanoBananaModule,
   ],
 })
 export class AppModule { }

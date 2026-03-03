@@ -76,4 +76,10 @@ export class AdminController {
   updatePassInfo(@Param('id') id: string, @Body() body: { passInfo: boolean }) {
     return this.adminService.updatePassInfo(id, body.passInfo);
   }
+
+  // Unassign doctor from user
+  @Post('unassign-doctor')
+  unassignDoctorFromUser(@Body() body: { userId: string }) {
+    return this.adminService.unassignDoctorFromUser(body.userId);
+  }
 }

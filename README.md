@@ -65,5 +65,5 @@ Web Bundling failed 34230ms index.js (1366 modules)
 ```bash
 git clone https://github.com/your-username/mydent.git
 cd mydent
-npm install
-npx expo start --tunnel
+yarn install
+yarn start

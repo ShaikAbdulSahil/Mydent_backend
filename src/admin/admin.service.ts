@@ -16,7 +16,7 @@ export class AdminService {
   constructor(
     @InjectModel(User.name) private userModel: Model<UserDocument>,
     @InjectModel(Doctor.name) private doctorModel: Model<DoctorDocument>,
-  ) {}
+  ) { }
 
   async getAllUsers() {
     return this.userModel.find();
@@ -37,16 +37,21 @@ export class AdminService {
     const doctor = await this.doctorModel.findById(doctorId);
     if (!doctor) throw new NotFoundException('Doctor not found');
 
-    // Check if the user is already assigned to a doctor
+    // Track if this is a reassignment
+    const isReassignment = !!user.assignedDoctor;
+
+    // If user already has a doctor assigned, clean up the old doctor's assignment
     if (user.assignedDoctor) {
-      throw new BadRequestException('User already has a doctor assigned');
+      const oldDoctorId = user.assignedDoctor.doctorId.toString();
+      const oldDoctor = await this.doctorModel.findById(oldDoctorId);
+      if (oldDoctor && oldDoctor.assignedUser) {
+        // Remove the user from old doctor's assignedUser
+        oldDoctor.assignedUser = undefined;
+        await oldDoctor.save();
+      }
     }
 
-    // Check if the doctor is already assigned to a user
-    if (doctor.assignedUser) {
-      throw new BadRequestException('Doctor already assigned to a user');
-    }
-
+    // Reassignment is allowed - overwrite existing assignments
     // 1. Set doctor info on user
     user.assignedDoctor = {
       doctorId: new Types.ObjectId(doctorId),
@@ -55,7 +60,7 @@ export class AdminService {
       status: AssignedUserStatus.PENDING,
     };
 
-    // 2. Set user info on doctor
+    // 2. Set user info on doctor (overwrite if exists)
     doctor.assignedUser = {
       userId: new Types.ObjectId(userId),
       passInfo: false, // default or derived value
@@ -65,7 +70,10 @@ export class AdminService {
 
     try {
       await Promise.all([user.save(), doctor.save()]);
-      return { message: 'Doctor assigned successfully', user };
+      return {
+        message: isReassignment ? 'Doctor reassigned successfully' : 'Doctor assigned successfully',
+        user
+      };
     } catch (err) {
       throw new InternalServerErrorException('Failed to assign doctor');
     }
@@ -127,5 +135,34 @@ export class AdminService {
     doctor.assignedUser.passInfo = passInfo;
     await doctor.save();
     return { message: 'Pass info updated successfully' };
+  }
+
+  async unassignDoctorFromUser(userId: string) {
+    const user = await this.userModel.findById(userId);
+    if (!user) throw new NotFoundException('User not found');
+
+    if (!user.assignedDoctor) {
+      throw new BadRequestException('User does not have a doctor assigned');
+    }
+
+    // Get the doctor to clean up their assignedUser
+    const doctorId = user.assignedDoctor.doctorId.toString();
+    const doctor = await this.doctorModel.findById(doctorId);
+
+    // Remove assignment from user
+    user.assignedDoctor = undefined;
+
+    // Remove assignment from doctor if found
+    if (doctor && doctor.assignedUser) {
+      doctor.assignedUser = undefined;
+      await doctor.save();
+    }
+
+    try {
+      await user.save();
+      return { message: 'Doctor unassigned successfully' };
+    } catch (err) {
+      throw new InternalServerErrorException('Failed to unassign doctor');
+    }
   }
 }
